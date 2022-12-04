@@ -5,6 +5,16 @@ import piexif
 #exif format: "YYYY:MM:DD HH:MM:SS
 
 '''
+Return list of images in the current folder
+'''
+def listimg():
+    # list files in directory
+    files = os.listdir(os.getcwd())
+    files = [f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.heic'))]
+    print(files)
+    return files
+
+'''
 Use regex to extract data from 
 name
 '''
@@ -52,37 +62,78 @@ Extract creation date from name (if possible)
 Add the exif data if not existing
 '''
 def dateCreate():
-    # list files in directory
-    files = os.listdir(os.getcwd())
-
-    filesModified = 0
-    for file in files:
-        
-        #take only images
-        if file.lower().endswith(('.jpg', '.jpeg')):
+    
+    #get all images in folder
+    for file in listimg():
             
-            exif_dict = piexif.load(file)
+        exif_dict = piexif.load(file)
 
-            #if dateCreated does not exit as exif info
-            #check if it can be computed from file name
-            #if yes, create and update exif info.
-            #if not do nothing
-            if 36867 not in exif_dict['Exif'].keys():
-                dateString = find_format(file)
-                if dateString is not None:
-                    exif_dict['Exif'][36867] = dateString
-                    exif_bytes = piexif.dump(exif_dict)
-                    piexif.insert(exif_bytes, file)
-                    print('{} -> {}'.format(dateString, file))
-                    filesModified += 1
+        #if dateCreated does not exit as exif info
+        #check if it can be computed from file name
+        #if yes, create and update exif info.
+        #if not do nothing
+        if 36867 not in exif_dict['Exif'].keys():
+            dateString = find_format(file)
+            if dateString is not None:
+                exif_dict['Exif'][36867] = dateString
+                exif_bytes = piexif.dump(exif_dict)
+                piexif.insert(exif_bytes, file)
+                print('{} -> {}'.format(dateString, file))
+                filesModified += 1
                     
     print('{} files have been modified'.format(str(filesModified)))
 
+
+'''
+Rename the file based on the 
+Exif dateCreated tag
+
+working on this function
+'''
+def rename():
+
+    for file in listimg():
+            
+        exif_dict = piexif.load(file)
+
+        #if dateCreated does not exit as exif info
+        #check if it can be computed from file name
+        #if yes, create and update exif info.
+        #if not do nothing
+        if 36867 in exif_dict['Exif'].keys():
+            dateString = exif_dict['Exif'][36867]
+            #os.rename(file, newname)
+
+'''
+Convert all heic files into jpg using imagemagick
+heic are deleted once converted
+'''
+def convertHeic():
+    
+    #test if imageMagick is installed
+    testim = os.popen('mogrify -version').read()
+    if 'ImageMagick' not in testim:
+        print('Please install ImageMagick. Click any key to confirm and exit', end=': ')
+        ex = input()
+        exit(0)
+    
+    files = [f for f in listimg() if f.lower().endswith(('.heic'))]
+    countc = 0
+    for f in files:
+        cmd = 'mogrify -format jpg {}'.format(f)
+        os.system(cmd)
+        os.remove(f)
+        countc += 1
+        
+    print('{} heic files have been converted into jpg'.format(str(countc)))
+        
 
 while(True):
     print('Choose')
     print('[0] to exit')
     print('[1] to create exif data createDate based on name')
+    print('[2] to test the script')
+    print('[3] to convert heic into jpg')
     
     print('>> ', end="")
     
@@ -93,4 +144,10 @@ while(True):
     elif ex == '1':
         dateCreate()
         print('Process completed, bye!')
+        break
+    elif ex == '2':
+        listimg()
+        break
+    elif ex == '3':
+        convertHeic()
         break
