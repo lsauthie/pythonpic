@@ -7,10 +7,10 @@ import piexif
 '''
 Return list of images in the current folder
 '''
-def listimg():
+def listimg(ex = ('.jpg', '.jpeg', '.heic')):
     # list files in directory
     files = os.listdir(os.getcwd())
-    files = [f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.heic'))]
+    files = [f for f in files if f.lower().endswith(ex)]
     print(files)
     return files
 
@@ -88,11 +88,14 @@ def dateCreate():
 Rename the file based on the 
 Exif dateCreated tag
 
-working on this function
+This function works only with jpg files
 '''
 def rename():
-
-    for file in listimg():
+    #rename into yyyymmdd-hhmm-000
+    
+    names = []
+    
+    for file in listimg(('.jpg', '.jpeg')):
             
         exif_dict = piexif.load(file)
 
@@ -101,8 +104,19 @@ def rename():
         #if yes, create and update exif info.
         #if not do nothing
         if 36867 in exif_dict['Exif'].keys():
-            dateString = exif_dict['Exif'][36867]
-            #os.rename(file, newname)
+            dateString = exif_dict['Exif'][36867].decode()
+            #YYYY:MM:DD HH:MM:SS
+            
+            nbr = 0
+            while(True):
+                nbrs = f'{nbr:03d}'#create string like 001 002 003
+                nname = '{}{}{}-{}{}-{}'.format(dateString[0:4],dateString[5:7],dateString[8:10],dateString[11:13],dateString[14:16],nbrs)
+                if nname in names:
+                    nbr +=1
+                else:
+                    names.append(nname)
+                    os.rename(file, nname+'.jpg')
+                    break
 
 '''
 Convert all heic files into jpg using imagemagick
@@ -117,7 +131,7 @@ def convertHeic():
         ex = input()
         exit(0)
     
-    files = [f for f in listimg() if f.lower().endswith(('.heic'))]
+    files = listimg(('.heic'))
     countc = 0
     for f in files:
         cmd = 'mogrify -format jpg {}'.format(f)
@@ -134,6 +148,7 @@ while(True):
     print('[1] to create exif data createDate based on name')
     print('[2] to test the script')
     print('[3] to convert heic into jpg')
+    print('[4] to rename files using createDate')
     
     print('>> ', end="")
     
@@ -150,4 +165,7 @@ while(True):
         break
     elif ex == '3':
         convertHeic()
+        break
+    elif ex == '4':
+        rename()
         break
